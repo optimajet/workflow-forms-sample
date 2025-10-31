@@ -1,0 +1,15 @@
+IF
+NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'WeeklyReport')
+BEGIN
+CREATE TABLE dbo.WeeklyReport
+(
+    Id          UNIQUEIDENTIFIER NOT NULL
+        CONSTRAINT PK_WeeklyReport PRIMARY KEY,
+    SubmittedBy NVARCHAR(256) NOT NULL,
+    SubmittedOn DATETIME         NOT NULL,
+    Name        NVARCHAR(1024) NOT NULL,
+    ReviewedBy  NVARCHAR(256) NULL,
+    Details     NVARCHAR(MAX) NOT NULL,
+    Version     INT              NOT NULL
+);
+END
