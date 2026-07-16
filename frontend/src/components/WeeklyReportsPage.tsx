@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Pagination, SelectPicker, Table} from 'rsuite'
-import {AppProps, camelCaseToWords, useAppState, useShowError} from '../types.ts'
+import {appendTenantId, AppProps, camelCaseToWords, useAppState, useShowError} from '../types.ts'
 import {CreateReportButton} from './CreateReportButton.tsx'
 
 const {Column, HeaderCell, Cell} = Table
@@ -18,7 +18,7 @@ const pageSizeOptions = [
 ]
 
 export const WeeklyReportsPage = (props: AppProps) => {
-  const {apiUrl} = props
+  const {apiUrl, tenantId} = props
   const {selectedUser} = useAppState()
   const [reports, setReports] = useState<Report[]>([])
   const [columns, setColumns] = useState<string[]>([])
@@ -38,12 +38,17 @@ export const WeeklyReportsPage = (props: AppProps) => {
         skip: skip.toString(),
         take: pageSize.toString(),
       })
+      appendTenantId(queryParams, tenantId)
+      const countQueryParams = new URLSearchParams({
+        user: selectedUser,
+      })
+      appendTenantId(countQueryParams, tenantId)
 
       const [dataRes, countRes] = await Promise.all([
         fetch(`${apiUrl}/reports/data/query?${queryParams}`)
           .then(res => res.json())
           .catch(error => showError('Failed to load reports: ' + error.message)),
-        fetch(`${apiUrl}/reports/data/count?user=${encodeURIComponent(selectedUser)}`)
+        fetch(`${apiUrl}/reports/data/count?${countQueryParams}`)
           .then(res => res.json())
           .catch(error => showError('Failed to load reports: ' + error.message)),
       ])
@@ -62,7 +67,7 @@ export const WeeklyReportsPage = (props: AppProps) => {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, selectedUser, showError, apiUrl])
+  }, [page, pageSize, selectedUser, showError, apiUrl, tenantId])
 
   useEffect(() => {
     fetchReports().catch(error => console.error('Error fetching reports:', error))

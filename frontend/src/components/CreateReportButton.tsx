@@ -1,9 +1,9 @@
 import {useCallback, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {Button} from 'rsuite'
-import {AppProps, useAppState, useShowError} from '../types.ts'
+import {AppProps, normalizeTenantId, useAppState, useShowError} from '../types.ts'
 
-export function CreateReportButton({apiUrl}: AppProps) {
+export function CreateReportButton({apiUrl, tenantId}: AppProps) {
   const {selectedUser} = useAppState()
   const navigate = useNavigate()
   const showError = useShowError()
@@ -12,7 +12,8 @@ export function CreateReportButton({apiUrl}: AppProps) {
   const handleClick = useCallback(async () => {
     setLoading(true)
     const data = {
-      user: selectedUser
+      user: selectedUser,
+      tenantId: normalizeTenantId(tenantId),
     }
 
     try {
@@ -36,7 +37,7 @@ export function CreateReportButton({apiUrl}: AppProps) {
     } finally {
       setLoading(false)
     }
-  }, [apiUrl, navigate, selectedUser, showError])
+  }, [apiUrl, navigate, selectedUser, showError, tenantId])
 
   return (
     <Button appearance="primary" color="red" loading={loading} onClick={handleClick}>

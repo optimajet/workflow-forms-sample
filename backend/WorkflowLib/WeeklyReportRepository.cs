@@ -18,35 +18,29 @@ public class WeeklyReportRepository
         _connectionString = configuration.GetConnectionString("Default");
     }
 
-    public async Task<int> GetCountAsync(string user)
+    public async Task<int> GetCountAsync(string user, string? tenantId)
     {
         List<string>? usersForQuery = GetUsersForQuery(user);
+        string? normalizedTenantId = NormalizeTenantId(tenantId);
         var builder = new StringBuilder();
         builder.AppendLine("""
                            SELECT COUNT(*)
                            FROM dbo.WeeklyReport WR
                                 INNER JOIN dbo.WorkflowProcessInstance WPI ON WR.Id = WPI.Id
                            """);
-        if (usersForQuery is not null)
-        {
-            builder.AppendLine("""
-                               WHERE WR.SubmittedBy IN @Users
-                               """);
-        }
+        AppendFilters(builder, usersForQuery, normalizedTenantId);
 
         var parameters = new DynamicParameters();
-        if (usersForQuery is not null)
-        {
-            parameters.Add("Users", usersForQuery);
-        }
+        AddFilterParameters(parameters, usersForQuery, normalizedTenantId);
 
         await using var connection = new SqlConnection(_connectionString);
         return await connection.QuerySingleAsync<int>(builder.ToString(), parameters);
     }
 
-    public async Task<IEnumerable<WeeklyReportData>> GetAllAsync(string user, int skip, int take)
+    public async Task<IEnumerable<WeeklyReportData>> GetAllAsync(string user, int skip, int take, string? tenantId)
     {
         List<string>? usersForQuery = GetUsersForQuery(user);
+        string? normalizedTenantId = NormalizeTenantId(tenantId);
 
         var builder = new StringBuilder();
         builder.AppendLine("""
@@ -54,12 +48,7 @@ public class WeeklyReportRepository
                            FROM dbo.WeeklyReport WR
                                 INNER JOIN dbo.WorkflowProcessInstance WPI ON WR.Id = WPI.Id
                            """);
-        if (usersForQuery is not null)
-        {
-            builder.AppendLine("""
-                               WHERE WR.SubmittedBy IN @Users
-                               """);
-        }
+        AppendFilters(builder, usersForQuery, normalizedTenantId);
 
         builder.AppendLine("""
                            ORDER BY WR.SubmittedOn DESC
@@ -68,14 +57,10 @@ public class WeeklyReportRepository
                            """);
 
         var parameters = new DynamicParameters();
-        if (usersForQuery is not null)
-        {
-            parameters.Add("Users", usersForQuery);
-        }
+        AddFilterParameters(parameters, usersForQuery, normalizedTenantId);
 
         parameters.Add("Skip", skip);
         parameters.Add("Take", take);
-        IEnumerable<WeeklyReportData> weeklyReportData;
         await using var connection = new SqlConnection(_connectionString);
         return await connection.QueryAsync<WeeklyReportData>(builder.ToString(), parameters);
     }
@@ -124,5 +109,35 @@ public class WeeklyReportRepository
         return selectedUser.Roles.Contains(Roles.Manager)
             ? Users.Data.Where(u => u.Division == selectedUser.Division).Select(u => u.Name).ToList()
             : [user];
+    }
+
+    private static void AppendFilters(StringBuilder builder, List<string>? usersForQuery, string? tenantId)
+    {
+        var filters = new List<string>();
+        if (usersForQuery is not null)
+        {
+            filters.Add("WR.SubmittedBy IN @Users");
+        }
+
+        filters.Add(tenantId is null ? "WPI.TenantId IS NULL" : "WPI.TenantId = @TenantId");
+        builder.AppendLine($"WHERE {string.Join(" AND ", filters)}");
+    }
+
+    private static void AddFilterParameters(DynamicParameters parameters, List<string>? usersForQuery, string? tenantId)
+    {
+        if (usersForQuery is not null)
+        {
+            parameters.Add("Users", usersForQuery);
+        }
+
+        if (tenantId is not null)
+        {
+            parameters.Add("TenantId", tenantId);
+        }
+    }
+
+    private static string? NormalizeTenantId(string? tenantId)
+    {
+        return string.IsNullOrWhiteSpace(tenantId) ? null : tenantId;
     }
 }

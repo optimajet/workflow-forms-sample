@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,7 +8,6 @@ public static class Users
 {
     private const string ApplicationDevelopment = "AppDev";
     private const string DevOps = "DevOps";
-    private const string Management = "Management";
 
     public static readonly List<User> Data =
     [
@@ -20,4 +20,22 @@ public static class Users
     ];
 
     public static readonly Dictionary<string, User> UserDict = Data.ToDictionary(u => u.Name);
+
+    public static IEnumerable<User> GetByTenant(string? tenantId)
+    {
+        string? normalizedTenantId = NormalizeTenantId(tenantId);
+        return Data.Where(user => string.Equals(NormalizeTenantId(user.TenantId), normalizedTenantId, StringComparison.Ordinal));
+    }
+
+    public static bool IsTenantMatched(string? userName, string? tenantId)
+    {
+        return !string.IsNullOrWhiteSpace(userName) &&
+               UserDict.TryGetValue(userName, out User? user) &&
+               string.Equals(NormalizeTenantId(user.TenantId), NormalizeTenantId(tenantId), StringComparison.Ordinal);
+    }
+
+    public static string? NormalizeTenantId(string? tenantId)
+    {
+        return string.IsNullOrWhiteSpace(tenantId) ? null : tenantId;
+    }
 }

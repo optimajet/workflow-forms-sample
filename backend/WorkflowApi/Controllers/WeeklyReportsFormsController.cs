@@ -17,7 +17,7 @@ public class WeeklyReportsFormsController : ControllerBase
         _runtime = workflowRuntimeService.Runtime;
     }
 
-    public record SubmitReportApiRequest(string User);
+    public record SubmitReportApiRequest(string User, string? TenantId);
 
     public record SubmitReportApiResponse(Guid ProcessId);
 
@@ -25,19 +25,40 @@ public class WeeklyReportsFormsController : ControllerBase
     [Route("submit")]
     public async Task<ActionResult<SubmitReportApiResponse>> SubmitReport([FromBody] SubmitReportApiRequest request)
     {
+        if (!IsUserTenantMatched(request.User, request.TenantId))
+        {
+            return Forbid();
+        }
+
         var processId = Guid.NewGuid();
         var createdInstanceParams = new CreateInstanceParams("WeeklyReportProcess", processId) { IdentityId = request.User };
+        string? tenantId = Users.NormalizeTenantId(request.TenantId);
+        if (tenantId is not null)
+        {
+            createdInstanceParams.TenantId = tenantId;
+        }
+
         await _runtime.CreateInstanceAsync(createdInstanceParams);
         return Ok(new SubmitReportApiResponse(processId));
     }
 
     [HttpGet]
     [Route("form")]
-    public async Task<ActionResult<Form>> GetForm([FromQuery] string formName, [FromQuery] int? formVersion)
+    public async Task<ActionResult<Form>> GetForm(
+        [FromQuery] string formName,
+        [FromQuery] int? formVersion,
+        [FromQuery] string? tenantId,
+        [FromQuery] string? user)
     {
+        if (!IsUserTenantMatched(user, tenantId))
+        {
+            return Forbid();
+        }
+
         GetFormResult formResponse = await _runtime.GetFormsRuntimeApi().GetFormAsync(new GetFormParameters
         {
-            FormKey = new FormKey { FormName = formName, FormVersion = formVersion }
+            FormKey = new FormKey { FormName = formName, FormVersion = formVersion },
+            TenantId = Users.NormalizeTenantId(tenantId)
         });
 
         return formResponse.Match<ActionResult>(
@@ -49,8 +70,18 @@ public class WeeklyReportsFormsController : ControllerBase
 
     [HttpGet]
     [Route("get")]
-    public async Task<ActionResult<ExecutableForm[]>> GetForms([FromQuery] Guid processId, [FromQuery] string user)
+    public async Task<ActionResult<ExecutableForm[]>> GetForms([FromQuery] Guid processId, [FromQuery] string user, [FromQuery] string? tenantId)
     {
+        if (!IsUserTenantMatched(user, tenantId))
+        {
+            return Forbid();
+        }
+
+        if (!await IsProcessTenantMatchedAsync(processId, tenantId))
+        {
+            return NotFound();
+        }
+
         FormsRuntimeApi formsPluginRuntimeApi = _runtime.GetFormsRuntimeApi();
         GetExecutableFormsResult executableFormsResponse = await formsPluginRuntimeApi
             .GetExecutableFormsAsync(new GetExecutableFormsParameters { ProcessId = processId, IdentityId = user, ConditionCheck = true });
@@ -94,7 +125,13 @@ public class WeeklyReportsFormsController : ControllerBase
         return Ok(forms.Select(f => f with { FormData = f.FormData.ToCamelCase() }).ToArray());
     }
 
-    public record ExecuteFormApiRequest(FormKey FormKey, string CommandName, Guid ProcessId, string User, Dictionary<string, object?> Data);
+    public record ExecuteFormApiRequest(
+        FormKey FormKey,
+        string CommandName,
+        Guid ProcessId,
+        string User,
+        Dictionary<string, object?> Data,
+        string? TenantId);
 
     public record ExecuteFormApiResponse(bool WasExecuted);
 
@@ -102,6 +139,16 @@ public class WeeklyReportsFormsController : ControllerBase
     [Route("execute")]
     public async Task<ActionResult<ExecuteFormApiResponse>> ExecuteForm([FromBody] ExecuteFormApiRequest request)
     {
+        if (!IsUserTenantMatched(request.User, request.TenantId))
+        {
+            return Forbid();
+        }
+
+        if (!await IsProcessTenantMatchedAsync(request.ProcessId, request.TenantId))
+        {
+            return NotFound();
+        }
+
         Dictionary<string, object?> pascalCaseData = request.Data.ToPascalCase();
 
         ExecuteFormResult response = await _runtime.GetFormsRuntimeApi()
@@ -122,12 +169,27 @@ public class WeeklyReportsFormsController : ControllerBase
         );
     }
 
-    public record SaveFormApiRequest(FormKey FormKey, Guid ProcessId, string User, Dictionary<string, object?> Data);
+    public record SaveFormApiRequest(
+        FormKey FormKey,
+        Guid ProcessId,
+        string User,
+        Dictionary<string, object?> Data,
+        string? TenantId);
 
     [HttpPost]
     [Route("save")]
     public async Task<ActionResult<object>> SaveForm([FromBody] SaveFormApiRequest request)
     {
+        if (!IsUserTenantMatched(request.User, request.TenantId))
+        {
+            return Forbid();
+        }
+
+        if (!await IsProcessTenantMatchedAsync(request.ProcessId, request.TenantId))
+        {
+            return NotFound();
+        }
+
         Dictionary<string, object?> pascalCaseData = request.Data.ToPascalCase();
 
         SaveFormResult response = await _runtime.GetFormsRuntimeApi().SaveFormAsync(new()
@@ -140,5 +202,16 @@ public class WeeklyReportsFormsController : ControllerBase
             validationErrors => BadRequest(validationErrors.Errors.ToCamelCase()),
             error => Problem(error.Message, statusCode: 500)
         );
+    }
+
+    private async Task<bool> IsProcessTenantMatchedAsync(Guid processId, string? tenantId)
+    {
+        var processInstance = await _runtime.GetProcessInstanceAndFillProcessParametersAsync(processId);
+        return string.Equals(Users.NormalizeTenantId(processInstance.TenantId), Users.NormalizeTenantId(tenantId), StringComparison.Ordinal);
+    }
+
+    private static bool IsUserTenantMatched(string? user, string? tenantId)
+    {
+        return !string.IsNullOrWhiteSpace(user) && Users.IsTenantMatched(user, tenantId);
     }
 }

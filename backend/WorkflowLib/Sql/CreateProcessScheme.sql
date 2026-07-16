@@ -178,5 +178,5 @@
                 InlinedSchemes = Source.InlinedSchemes,
                 Tags           = Source.Tags
     WHEN NOT MATCHED BY TARGET THEN
-    INSERT (Code, Scheme, CanBeInlined, InlinedSchemes, Tags)
-    VALUES (Source.Code, Source.Scheme, Source.CanBeInlined, Source.InlinedSchemes, Source.Tags);
+    INSERT (Id, Code, Scheme, CanBeInlined, InlinedSchemes, Tags)
+    VALUES (NEWID(), Source.Code, Source.Scheme, Source.CanBeInlined, Source.InlinedSchemes, Source.Tags);

@@ -5,6 +5,7 @@ import {create} from 'zustand'
 export interface AppProps {
   apiUrl: string,
   schemeCode: string,
+  tenantId?: string | null,
   licenseKey?: string
 }
 
@@ -24,6 +25,7 @@ export interface User {
   name: string;
   roles: Role[];
   division: string;
+  tenantId?: string | null;
 }
 
 export type Users = User[];
@@ -56,4 +58,29 @@ export function camelCaseToWords(input: string) {
     .split(' ')
     .map(word => word.charAt(0).toLocaleUpperCase() + word.slice(1))
     .join(' ')
+}
+
+export function normalizeTenantId(tenantId: string | null | undefined) {
+  return typeof tenantId === 'string' && tenantId.trim() !== ''
+    ? tenantId
+    : undefined
+}
+
+export function appendTenantId(searchParams: URLSearchParams, tenantId: string | null | undefined) {
+  const normalizedTenantId = normalizeTenantId(tenantId)
+  if (normalizedTenantId !== undefined) {
+    searchParams.set('tenantId', normalizedTenantId)
+  }
+}
+
+export function buildSampleDesignerApiUrl(apiUrl: string, user: string | null) {
+  const searchParams = new URLSearchParams()
+  if (user !== null) {
+    searchParams.set('sampleUser', user)
+  }
+
+  const queryString = searchParams.toString()
+  return queryString === ''
+    ? `${apiUrl}/designer`
+    : `${apiUrl}/designer?${queryString}`
 }

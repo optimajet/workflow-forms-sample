@@ -8,8 +8,8 @@ namespace WorkflowApi.Controllers;
 public class UsersController
 {
     [HttpGet("all")]
-    public IEnumerable<User> All()
+    public IEnumerable<User> All([FromQuery] string? tenantId)
     {
-        return Users.Data;
+        return Users.GetByTenant(tenantId);
     }
 }

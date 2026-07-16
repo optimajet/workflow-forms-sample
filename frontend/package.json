@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@optimajet/workflow-designer-react": "^20.0.3",
+    "@optimajet/workflow-designer-react": "^21.1.2",
     "@optimajet/workflow-forms-manager": "*",
     "@optimajet/workflow-forms-viewer": "*",
     "fast-deep-equal": "^3.1.3",

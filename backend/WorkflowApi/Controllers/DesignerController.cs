@@ -44,12 +44,21 @@ public class DesignerController : ControllerBase
                 }
             }
 
+            if (!IsSampleUserTenantMatched(parameters))
+            {
+                return Forbid();
+            }
+
             //If a file is passed
             if (Request.Form.Files.Count > 0)
             {
                 //Save file
                 filestream = Request.Form.Files[0].OpenReadStream();
             }
+        }
+        else if (!IsSampleUserTenantMatched(parameters))
+        {
+            return Forbid();
         }
 
         //Calling the Designer Api and store answer
@@ -62,5 +71,10 @@ public class DesignerController : ControllerBase
 
         //response
         return Content(result);
+    }
+
+    private static bool IsSampleUserTenantMatched(NameValueCollection parameters)
+    {
+        return Users.IsTenantMatched(parameters["sampleUser"], parameters["TenantId"]);
     }
 }

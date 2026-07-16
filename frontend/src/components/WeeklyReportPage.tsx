@@ -1,9 +1,9 @@
-import {Form, FormKey, FormsViewer} from '@optimajet/workflow-forms-viewer'
+import {Form, FormKey, FormsViewer, type FormsViewerRequestContext} from '@optimajet/workflow-forms-viewer'
 import {useCallback} from 'react'
 import {useParams} from 'react-router-dom'
-import {AppProps, useAppState, useShowError, useShowSuccess} from '../types.ts'
+import {appendTenantId, AppProps, normalizeTenantId, useAppState, useShowError, useShowSuccess} from '../types.ts'
 
-export function WeeklyReportPage({apiUrl}: AppProps) {
+export function WeeklyReportPage({apiUrl, tenantId}: AppProps) {
   const {id} = useParams()
   const {selectedUser} = useAppState()
   const showError = useShowError()
@@ -13,28 +13,50 @@ export function WeeklyReportPage({apiUrl}: AppProps) {
     return !!id && !!selectedUser
   }, [id, selectedUser])
 
-  const getForm = useCallback(async (formKey: FormKey) => {
-    const formVersion = typeof formKey.formVersion === 'number' ? `&formVersion=${formKey.formVersion}` : ''
-    const response = await fetch(`${apiUrl}/reports/forms/form?formName=${formKey.formName}${formVersion}`)
+  const getForm = useCallback(async (formKey: FormKey, context?: FormsViewerRequestContext) => {
+    if (selectedUser === null) throw new Error('User is not selected')
+
+    const queryParams = new URLSearchParams({
+      formName: formKey.formName,
+      user: selectedUser,
+    })
+    if (typeof formKey.formVersion === 'number') {
+      queryParams.set('formVersion', formKey.formVersion.toString())
+    }
+    appendTenantId(queryParams, context?.tenantId)
+
+    const response = await fetch(`${apiUrl}/reports/forms/form?${queryParams}`)
     if (response.ok) return ((await response.json()) as Form).formCode
     const errorText = await response.text()
     throw new Error(errorText || `HTTP error ${response.status}`)
-  }, [apiUrl])
+  }, [apiUrl, selectedUser])
 
-  const getForms = useCallback(async () => {
-    if (!canDisplay()) return []
-    const response = await fetch(`${apiUrl}/reports/forms/get?processId=${id}&user=${selectedUser}`)
+  const getForms = useCallback(async (context?: FormsViewerRequestContext) => {
+    if (!canDisplay() || id === undefined || selectedUser === null) return []
+    const queryParams = new URLSearchParams({
+      processId: id,
+      user: selectedUser,
+    })
+    appendTenantId(queryParams, context?.tenantId)
+
+    const response = await fetch(`${apiUrl}/reports/forms/get?${queryParams}`)
     if (response.ok) return await response.json() as Form[]
     const errorText = await response.text()
     throw new Error(errorText || `HTTP error ${response.status}`)
   }, [apiUrl, canDisplay, id, selectedUser])
 
-  const saveForm = useCallback(async (processId: string, formKey: FormKey, data: Record<string, unknown>) => {
+  const saveForm = useCallback(async (
+      processId: string,
+      formKey: FormKey,
+      data: Record<string, unknown>,
+      context?: FormsViewerRequestContext
+    ) => {
       const postData = {
         formKey: formKey,
         processId: processId,
         user: selectedUser,
-        data: data
+        data: data,
+        tenantId: normalizeTenantId(context?.tenantId),
       }
       const response = await fetch(`${apiUrl}/reports/forms/save`, {
         method: 'POST',
@@ -50,13 +72,20 @@ export function WeeklyReportPage({apiUrl}: AppProps) {
     }, [apiUrl, selectedUser]
   )
 
-  const executeForm = useCallback(async (processId: string, formKey: FormKey, commandName: string, data: Record<string, unknown>) => {
+  const executeForm = useCallback(async (
+    processId: string,
+    formKey: FormKey,
+    commandName: string,
+    data: Record<string, unknown>,
+    context?: FormsViewerRequestContext
+  ) => {
     const postData = {
       formKey: formKey,
       processId: processId,
       commandName: commandName,
       user: selectedUser,
-      data: data
+      data: data,
+      tenantId: normalizeTenantId(context?.tenantId),
     }
     const response = await fetch(`${apiUrl}/reports/forms/execute`, {
       method: 'POST',
@@ -75,6 +104,7 @@ export function WeeklyReportPage({apiUrl}: AppProps) {
     {canDisplay() &&
       <FormsViewer getForm={getForm} getForms={getForms} onError={showError} onSuccess={showSuccess} saveForm={saveForm}
                    executeForm={executeForm}
+                   tenantId={normalizeTenantId(tenantId)}
       />}
   </>
 }

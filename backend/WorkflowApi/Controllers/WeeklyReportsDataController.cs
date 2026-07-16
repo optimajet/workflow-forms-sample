@@ -19,16 +19,30 @@ public class WeeklyReportsDataController : ControllerBase
 
     [HttpGet]
     [Route("count")]
-    public async Task<ActionResult<int>> GetCount([FromQuery] string user)
+    public async Task<ActionResult<int>> GetCount([FromQuery] string user, [FromQuery] string? tenantId)
     {
-        return Ok(await _weeklyReportRepository.GetCountAsync(user));
+        if (!Users.IsTenantMatched(user, tenantId))
+        {
+            return Forbid();
+        }
+
+        return Ok(await _weeklyReportRepository.GetCountAsync(user, tenantId));
     }
 
     [HttpGet]
     [Route("query")]
-    public async Task<ActionResult<dynamic[]>> GetReports([FromQuery] string user, [FromQuery] int skip, [FromQuery] int take)
+    public async Task<ActionResult<dynamic[]>> GetReports(
+        [FromQuery] string user,
+        [FromQuery] int skip,
+        [FromQuery] int take,
+        [FromQuery] string? tenantId)
     {
-        IEnumerable<WeeklyReportData> weeklyReportData = await _weeklyReportRepository.GetAllAsync(user, skip, take);
+        if (!Users.IsTenantMatched(user, tenantId))
+        {
+            return Forbid();
+        }
+
+        IEnumerable<WeeklyReportData> weeklyReportData = await _weeklyReportRepository.GetAllAsync(user, skip, take, tenantId);
         return Ok(weeklyReportData.Select(d => d.GetPropertiesAsDictionary().ToCamelCase()));
     }
 }

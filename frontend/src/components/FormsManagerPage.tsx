@@ -1,8 +1,12 @@
 import {FormsManager} from '@optimajet/workflow-forms-manager'
-import {AppProps, useShowError} from '../types.ts'
+import {AppProps, buildSampleDesignerApiUrl, normalizeTenantId, useAppState, useShowError} from '../types.ts'
 
-export function FormsManagerPage({apiUrl, licenseKey}: AppProps) {
+export function FormsManagerPage({apiUrl, licenseKey, tenantId}: AppProps) {
+  const {selectedUser} = useAppState()
   const showError = useShowError()
-  return <FormsManager apiUrl={`${apiUrl}/designer`} licenseKey={licenseKey} onError={showError}>
+  if (selectedUser === null) return <>Select a user first</>
+
+  return <FormsManager apiUrl={buildSampleDesignerApiUrl(apiUrl, selectedUser)} licenseKey={licenseKey} onError={showError}
+                       tenantId={normalizeTenantId(tenantId)}>
   </FormsManager>
 }
