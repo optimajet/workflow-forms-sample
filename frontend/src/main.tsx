@@ -3,16 +3,8 @@ import App from './App.tsx'
 import 'rsuite/dist/rsuite.min.css'
 import '@optimajet/workflow-forms-manager/index.css'
 import '@optimajet/workflow-forms-viewer/index.css'
-import {AppProps} from './types.ts'
-
-const appProps: AppProps = {
-  apiUrl: 'https://localhost:5141/api',
-  schemeCode: 'WeeklyReportProcess',
-  // tenantId: 'tenant-1',
-  //licenseKey: ''
-}
-
+import {appConfig} from './config.ts'
 
 createRoot(document.getElementById('root')!).render(
-  <App {...appProps}/>
+  <App {...appConfig}/>
 )

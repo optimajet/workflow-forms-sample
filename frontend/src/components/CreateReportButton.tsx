@@ -1,9 +1,10 @@
 import {useCallback, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {Button} from 'rsuite'
-import {AppProps, normalizeTenantId, useAppState, useShowError} from '../types.ts'
+import {WorkflowApiClient} from '../api.ts'
+import {AppProps, useAppState, useShowError} from '../types.ts'
 
-export function CreateReportButton({apiUrl, tenantId}: AppProps) {
+export function CreateReportButton({apiUrl, schemeCode, tenantId}: AppProps) {
   const {selectedUser} = useAppState()
   const navigate = useNavigate()
   const showError = useShowError()
@@ -11,33 +12,18 @@ export function CreateReportButton({apiUrl, tenantId}: AppProps) {
 
   const handleClick = useCallback(async () => {
     setLoading(true)
-    const data = {
-      user: selectedUser,
-      tenantId: normalizeTenantId(tenantId),
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/reports/forms/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      })
-
-      if (response.ok) {
-        const {processId} = await response.json()
-        navigate(`/weeklyReport/${processId}`)
-      } else {
-        const errorText = await response.text()
-        showError(Error(errorText || `HTTP error ${response.status}`))
-      }
+      if (selectedUser === null) throw new Error('User is not selected')
+      const processId = crypto.randomUUID()
+      const client = new WorkflowApiClient({baseUrl: apiUrl, tenantId: tenantId ?? undefined})
+      await client.createInstance(schemeCode, processId, selectedUser)
+      navigate(`/weeklyReport/${processId}`)
     } catch (error) {
       showError(error as Error)
     } finally {
       setLoading(false)
     }
-  }, [apiUrl, navigate, selectedUser, showError, tenantId])
+  }, [apiUrl, navigate, schemeCode, selectedUser, showError, tenantId])
 
   return (
     <Button appearance="primary" color="red" loading={loading} onClick={handleClick}>

@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Pagination, SelectPicker, Table} from 'rsuite'
-import {appendTenantId, AppProps, camelCaseToWords, useAppState, useShowError} from '../types.ts'
+import {WorkflowApiClient} from '../api.ts'
+import {AppProps, camelCaseToWords, normalizeTenantId, useAppState, useShowError} from '../types.ts'
 import {CreateReportButton} from './CreateReportButton.tsx'
 
 const {Column, HeaderCell, Cell} = Table
@@ -27,30 +28,19 @@ export const WeeklyReportsPage = (props: AppProps) => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(defaultPageSize)
   const showError = useShowError()
+  const client = useMemo(
+    () => new WorkflowApiClient({baseUrl: apiUrl, tenantId: normalizeTenantId(tenantId)}),
+    [apiUrl, tenantId]
+  )
 
   const fetchReports = useCallback(async () => {
     if (selectedUser === null) return
     setLoading(true)
     try {
       const skip = (page - 1) * pageSize
-      const queryParams = new URLSearchParams({
-        user: selectedUser,
-        skip: skip.toString(),
-        take: pageSize.toString(),
-      })
-      appendTenantId(queryParams, tenantId)
-      const countQueryParams = new URLSearchParams({
-        user: selectedUser,
-      })
-      appendTenantId(countQueryParams, tenantId)
-
       const [dataRes, countRes] = await Promise.all([
-        fetch(`${apiUrl}/reports/data/query?${queryParams}`)
-          .then(res => res.json())
-          .catch(error => showError('Failed to load reports: ' + error.message)),
-        fetch(`${apiUrl}/reports/data/count?${countQueryParams}`)
-          .then(res => res.json())
-          .catch(error => showError('Failed to load reports: ' + error.message)),
+        client.getReports(selectedUser, skip, pageSize),
+        client.getReportsCount(selectedUser)
       ])
 
       setReports(dataRes)
@@ -61,13 +51,15 @@ export const WeeklyReportsPage = (props: AppProps) => {
         dataRes.forEach((row: Report) => {
           Object.keys(row).forEach(key => allKeys.add(key));
         });
-        
+
         setColumns(Array.from(allKeys))
       }
+    } catch (error) {
+      showError(error as Error)
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, selectedUser, showError, apiUrl, tenantId])
+  }, [client, page, pageSize, selectedUser, showError])
 
   useEffect(() => {
     fetchReports().catch(error => console.error('Error fetching reports:', error))

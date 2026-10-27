@@ -1,0 +1,18 @@
+﻿<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="OptimaJet.Workflow.Api" Version="23.0.0" />
+    <PackageVersion Include="OptimaJet.Workflow.Api.Forms" Version="23.0.0" />
+    <PackageVersion Include="OptimaJet.Workflow.Api.Mssql" Version="23.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="3.4.1" />
+    <PackageVersion Include="MSTest.TestFramework" Version="3.4.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.2.3" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
+  </ItemGroup>
+</Project>

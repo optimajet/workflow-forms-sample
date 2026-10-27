@@ -1,18 +1,16 @@
-import {AppProps, buildSampleDesignerApiUrl, normalizeTenantId, useAppState} from '../types.ts'
+import {AppProps, useAppState} from '../types.ts'
 import WorkflowDesigner from '@optimajet/workflow-designer-react'
 
-export function DesignerPage({schemeCode, apiUrl, tenantId}: AppProps) {
+export function DesignerPage({schemeCode, apiUrl}: AppProps) {
   const {selectedUser} = useAppState()
   if (selectedUser === null) return <>Select a user first</>
 
-  const normalizedTenantId = normalizeTenantId(tenantId)
   const designerConfig = {
     renderTo: 'wfdesigner',
-    apiurl: buildSampleDesignerApiUrl(apiUrl, selectedUser),
+    apiurl: `${apiUrl.replace(/\/$/, '')}/workflow-api/designer`,
     showSaveButton: true,
     name: 'wfe',
-    language: 'en',
-    ...(normalizedTenantId === undefined ? {} : {tenantId: normalizedTenantId}),
+    language: 'en'
   }
   return <WorkflowDesigner
     schemeCode={schemeCode}

@@ -6,16 +6,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@optimajet/workflow-designer-react": "^21.1.2",
-    "@optimajet/workflow-forms-manager": "*",
-    "@optimajet/workflow-forms-viewer": "*",
-    "fast-deep-equal": "^3.1.3",
+    "@optimajet/workflow-designer-react": "23.0.0",
+    "@optimajet/workflow-forms-manager": "23.0.0",
+    "@optimajet/workflow-forms-viewer": "23.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.18.0",
+    "react-router-dom": "^7.18.2",
     "rsuite": "5.83.4",
     "sonner": "^2.0.1",
     "zustand": "^5.0.3"
@@ -31,6 +31,7 @@
     "globals": "^15.15.0",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^5.0.3"
   }
 }

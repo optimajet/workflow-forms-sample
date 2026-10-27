@@ -1,0 +1,6 @@
+﻿**/bin/
+**/obj/
+**/TestResults/
+
+!WorkflowApi/Data/Sql/
+!WorkflowApi/Data/Sql/*.sql

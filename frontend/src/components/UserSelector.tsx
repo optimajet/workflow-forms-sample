@@ -1,29 +1,26 @@
 import {useEffect, useMemo, useState} from 'react'
 import {SelectPicker} from 'rsuite'
-import {appendTenantId, AppProps, useAppState, Users, useShowError} from '../types.ts'
+import {WorkflowApiClient} from '../api.ts'
+import {AppProps, normalizeTenantId, useAppState, Users, useShowError} from '../types.ts'
 
 export function UserSelector({apiUrl, tenantId}: AppProps) {
   const {selectedUser, setSelectedUser} = useAppState()
   const [users, setUsers] = useState<Users>([])
   const showError = useShowError()
+  const client = useMemo(
+    () => new WorkflowApiClient({baseUrl: apiUrl, tenantId: normalizeTenantId(tenantId)}),
+    [apiUrl, tenantId]
+  )
 
   useEffect(() => {
-    const queryParams = new URLSearchParams()
-    appendTenantId(queryParams, tenantId)
-    const queryString = queryParams.toString()
-    const url = queryString === ''
-      ? `${apiUrl}/users/all`
-      : `${apiUrl}/users/all?${queryString}`
-
-    fetch(url)
-      .then(response => response.json())
+    client.getUsers()
       .then(data => {
         const users = data as Users
         setUsers(users)
         setSelectedUser(users.length > 0 ? users[0].name : null)
       })
       .catch(error => showError('Failed to load users: ' + error.message))
-  }, [setSelectedUser, showError, apiUrl, tenantId])
+  }, [client, setSelectedUser, showError])
 
   const data = useMemo(() => {
     return users.map(u => {

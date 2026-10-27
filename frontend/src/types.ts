@@ -19,7 +19,7 @@ export const useAppState = create<AppState>((set) => ({
   setSelectedUser: (user: string | null) => set({selectedUser: user}),
 }))
 
-export type Role = 'User' | 'Manager' | 'CTO';
+export type Role = 'Programmer' | 'Manager';
 
 export interface User {
   name: string;
@@ -64,23 +64,4 @@ export function normalizeTenantId(tenantId: string | null | undefined) {
   return typeof tenantId === 'string' && tenantId.trim() !== ''
     ? tenantId
     : undefined
-}
-
-export function appendTenantId(searchParams: URLSearchParams, tenantId: string | null | undefined) {
-  const normalizedTenantId = normalizeTenantId(tenantId)
-  if (normalizedTenantId !== undefined) {
-    searchParams.set('tenantId', normalizedTenantId)
-  }
-}
-
-export function buildSampleDesignerApiUrl(apiUrl: string, user: string | null) {
-  const searchParams = new URLSearchParams()
-  if (user !== null) {
-    searchParams.set('sampleUser', user)
-  }
-
-  const queryString = searchParams.toString()
-  return queryString === ''
-    ? `${apiUrl}/designer`
-    : `${apiUrl}/designer?${queryString}`
 }
