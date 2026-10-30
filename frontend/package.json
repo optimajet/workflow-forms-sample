@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@optimajet/workflow-designer-react": "23.0.0",
-    "@optimajet/workflow-forms-manager": "23.0.0",
-    "@optimajet/workflow-forms-viewer": "23.0.0",
+    "@optimajet/workflow-designer-react": "23.0.1",
+    "@optimajet/workflow-forms-manager": "23.0.1",
+    "@optimajet/workflow-forms-viewer": "23.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.2",
